@@ -22,7 +22,7 @@ Reference frames live in the scratchpad:
 | property | value |
 |---|---|
 | page background | `#FDFDFD` (measured 253,253,253 uniformly; white text measures 255 and black measures 0, so the range is not clipped — the off-white is real) |
-| layout | single centred column, horizontal centre at x = 545.4 in a 1090-wide viewport (i.e. exactly centred) |
+| layout | single column. The three elements are NOT on one axis: the ruler centres on 545.37, the artwork on 545.00 and the capsule on 543.75, consistently in every frame |
 | no scrollbars, no other chrome | |
 
 Vertical anchors (CSS px from the top of a 1080-tall viewport):
@@ -31,7 +31,7 @@ Vertical anchors (CSS px from the top of a 1080-tall viewport):
 |---|---|---|---|
 | Mono/Color toggle | 15.5 | 48.5 | 33.5 |
 | face artwork (ink bbox varies by age) | ≈266 | ≈610 | — |
-| “Age: N” pill | 647.0 | 677.5 | 31.0 |
+| “Age: N” pill | 647.5 | 677.5 | 30.0 |
 | ruler ticks (baseline is flat) | 696.0 (tallest tick top) | 785.9 (shared baseline) | 90 max |
 
 ---
@@ -61,12 +61,12 @@ is no slide, no crossfade, no intermediate state anywhere in the recording.
 ## 3. “Age: N” pill
 
 ```
-height        31.0
-width         hugs content (72.2 for “Age: 5”, 80.0 for “Age: 33”)
-border-radius 9999px  (corner sweep measured 14 px ≈ height/2)
+height        30.0
+width         hugs content (71.5 for “Age: 5”, 80.5 for “Age: 24”)
+border-radius 9999px  (circular arc, rms 0.05 device px; radius = height/2)
 fill          #000000
-text          #FFFFFF, "Age: {value}"
-centre        x = 545.4  (page centre), top = 647.0
+text          #FFFFFF, "Age: {value}"  — 15px, 42.0px of ink for “Age: 5”
+centre        x = 543.75, top = 647.5
 ```
 
 ---
@@ -79,7 +79,8 @@ track-with-a-thumb.
 ```
 tick pitch        23.80 px          (fit over 22 gaps: (1626.44−579.24)/22 /2)
 tick width        4 px              (ink-sum/peak = 3.72; indicator measures 3.98)
-tick fill         #ECECEC           (measured luminance 236–238 on a 253 page)
+tick fill         #EEEEEE           (238; see §9 — 236 is the peak-picked value
+                                     and is biased light by the capture blur)
 active tick fill  #000000
 baseline          y = 785.9  — every tick is BOTTOM-ALIGNED to this line
 clip window       543.4 px = `23P - w`, i.e. exactly 23 ticks. Measured from
@@ -98,7 +99,7 @@ not on its index. Fitted over 13 288 tick samples (RMS error **0.29 px**):
 
 ```
 d = |tickCentreX − containerCentreX|            // CSS px
-h = 12.5 + 77.5 * (1 − min(d / 262, 1)) ** 1.55
+h = 12.5 + 77.5 * (1 − min(d / (11 * P), 1)) ** 1.55     // 11*P = 261.8
 ```
 
 so `h(0) = 90`, `h(262+) = 12.5`. Spot values (d → h):

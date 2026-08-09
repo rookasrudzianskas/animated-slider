@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 
 import { REFERENCE_VIEWPORT } from './layout'
 import { layoutFor, type ResponsiveLayout } from './responsive'
@@ -12,10 +12,16 @@ import { layoutFor, type ResponsiveLayout } from './responsive'
  * then corrects on mount. `visualViewport` is preferred where it exists so the
  * iOS keyboard and toolbars do not make the ruler jump.
  */
+/**
+ * Runs before paint on the client, and is a no-op during SSR. Without it a phone
+ * paints one frame laid out for the 1090px reference and then snaps.
+ */
+const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
+
 export function useViewportLayout(): ResponsiveLayout {
   const [size, setSize] = useState(REFERENCE_VIEWPORT as { width: number; height: number })
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const read = () => {
       const vv = window.visualViewport
       setSize({

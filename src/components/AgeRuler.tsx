@@ -190,7 +190,7 @@ export function AgeRuler({
       aria-valuemin={MIN_AGE}
       aria-valuemax={MAX_AGE}
       aria-valuenow={age}
-      aria-valuetext={`Age ${age}`}
+      aria-valuetext={`${age} years`}
       aria-orientation="horizontal"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
