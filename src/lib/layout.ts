@@ -9,12 +9,16 @@ export const REFERENCE_VIEWPORT = { width: 1090, height: 1080 } as const
 export const PAGE_BG = '#fdfdfd'
 
 /**
- * The reference's three stacked elements are not on a single axis: measured in
- * a 1090-wide viewport the ruler centres on 545.37, the artwork on 545.00 and
- * the age capsule on 543.75 — consistently, in every frame and at both capsule
- * widths. The artwork sets the shared centre; the other two carry their offset.
+ * The reference's column is centred on 543.75 in a 1090-wide viewport, not on
+ * 545 — measured from the age capsule's box (identical across every frame and
+ * both capsule widths) and independently from where the ruler's clip window
+ * starts and stops admitting ticks.
+ *
+ * The artwork is the exception: it is drawn from a crop taken at device x
+ * 780..1400, so it lands correctly only when centred on 545. That is why the
+ * offset is carried by the capsule and the ruler rather than by the column.
  */
-export const RULER_OFFSET_X = 0.84
+export const COLUMN_OFFSET_X = -1.25
 
 /** Face artwork box. */
 export const FACE = { width: 310, height: 410, top: 235 } as const
@@ -32,12 +36,6 @@ export const PILL = {
   height: 30,
   paddingInline: 14.25,
   fontSize: 15,
-  /**
-   * The capsule is centred 1.62px left of the ruler's centre in the reference —
-   * consistently, across every frame and both text widths. Reproduced rather
-   * than tidied away.
-   */
-  offsetX: -1.12,
 } as const
 
 /**

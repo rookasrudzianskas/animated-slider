@@ -40,12 +40,12 @@ Vertical anchors (CSS px from the top of a 1080-tall viewport):
 
 ```
 outer pill   117.5 × 33.5, border-radius 9999px
-             1px border #E5E5E5, transparent/page-coloured fill
+             1.30px border #E4E4E4, transparent/page-coloured fill
              offset: top 15.5, right 15.5   (≈16 / 16)
 padding      ≈3–4 px around the inner segment
-active seg   53.64 × 25.13 (for “Mono”), border-radius 9999px, fill #000000
+active seg   53.0 × 25.1 (for “Mono”), border-radius 9999px, fill #000000
 active text  #FFFFFF
-idle  text   #909090   (darkest measured core = 144)
+idle  text   #949494
 cursor       pointer  (hand cursor visible in the recording)
 ```
 
@@ -82,8 +82,12 @@ tick width        4 px              (ink-sum/peak = 3.72; indicator measures 3.9
 tick fill         #ECECEC           (measured luminance 236–238 on a 253 page)
 active tick fill  #000000
 baseline          y = 785.9  — every tick is BOTTOM-ALIGNED to this line
-visible window    23 ticks (11 left + active + 11 right); clipped at ±273 px
-                  from centre
+clip window       543.4 px = `23P - w`, i.e. exactly 23 ticks. Measured from
+                  where ticks appear and disappear across all 892 frames: the
+                  leftmost inked column pins at device x 544 (93 frames) and the
+                  rightmost at 1631 (173 frames), never beyond. Wide enough that
+                  a tick at half phase is fully excluded, so the visible count
+                  alternates 23 <-> 22 and never reaches 24.
 range             ages 5 … 95  → 91 ticks
 ```
 
@@ -246,3 +250,36 @@ The recording is the oracle. To check any change:
    `window.__slider` for this — see `src/lib/testing.ts`).
 3. Diff against `scratchpad/frames_all/f_NNNN.jpg` (1090 px wide = 1 CSS px per px).
 4. `scripts/compare.mjs` does 1–3 and prints per-region pixel deltas.
+
+---
+
+## 9. Corrections applied after the first pass
+
+Four numbers in the sections above were revised once the capture's point-spread
+(sigma ≈ 0.44 device px, measured on the black tick edge, the grey tick edge and
+the toggle's black segment edge — the same for high and low contrast) was
+modelled rather than ignored. Reading "the darkest pixel" of a feature thinner
+than ~4 device px systematically returns a colour that is too light and a width
+that is too wide.
+
+| what | first pass | corrected | why |
+|---|---|---|---|
+| toggle border | 1px #E5E5E5 | **1.30px #E4E4E4** | the radial ink profile's model-free FWHM is 2.599 device px, and no pixel on the 234×66 ring exceeds 25.9 ink — a 1px border carrying the measured total ink would have to peak at 33.5 |
+| toggle idle label | #909090 | **#949494** | the *same glyphs* appear white-on-black and grey-on-page, so `(253−v_idle)/v_active = (253−G)/W` independently of blur; least-squares slope 0.4093/0.4086 for the two labels ⇒ G = 148.6 |
+| ruler ticks | #ECECEC | **#EEEEEE** | fitted amplitude 15.0 ± 0.2 below 253 over 2609 cross-sections; the core plateau is 4 device px wide so it does reach the true value |
+| tick caps | rounded, r=2 | **square, r=0** | the last partially-covered row at a tick's top is a *uniform* 0.605 × a full row across the entire 8-device-px width. A 2px round cap would make that row 2.1px wide, not 8 |
+
+Also confirmed, with evidence rather than assumption:
+
+- **No box-shadow anywhere.** Ring means outside the toggle border: +0.51, −0.01,
+  +0.30, +0.01, and exactly 0.0000 at 6–10px, on both the 494-frame MONO median
+  and the 398-frame COLOR median. Same for the pill and the ticks.
+- **Every capsule is fully rounded** (`border-radius: 9999px`), not a fixed
+  radius: corner sweeps fit true circular arcs with rms 0.05–0.07 device px, and
+  radius = height/2 to within 1.2%.
+- **Both tick states are 4.00 CSS px wide.** Active 4.015 ± 0.025 (n=105),
+  inactive 3.97 ± 0.05 (n=2609). The active tick is the same element recoloured.
+- **The ruler's horizontal quantities are all lattice multiples**: the clip
+  window is `23P − w`, the envelope range is exactly `11P`. So `D/halfWindow`
+  is a constant and the silhouette survives a change of pitch — which is why the
+  responsive rule shrinks the pitch and keeps all 23 ticks.

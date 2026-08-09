@@ -6,17 +6,11 @@ import { AgePill } from '@/components/AgePill'
 import { AgeRuler } from '@/components/AgeRuler'
 import { FaceStack } from '@/components/FaceStack'
 import { ModeToggle, type ColourMode } from '@/components/ModeToggle'
-import {
-  COLUMN_LIFT,
-  RULER_OFFSET_X,
-  FACE,
-  FACE_TO_PILL,
-  PILL_TO_RULER,
-  TOGGLE_INSET,
-} from '@/lib/layout'
-import { FOLLOW_TAU, HALF_WINDOW, MIN_AGE, TICK_PITCH } from '@/lib/ruler'
+import { COLUMN_OFFSET_X, FACE_TO_PILL, PILL_TO_RULER, TOGGLE_INSET } from '@/lib/layout'
+import { FOLLOW_TAU, MIN_AGE, TICK_PITCH } from '@/lib/ruler'
 import { RulerEngine } from '@/lib/rulerEngine'
 import { exposeForTesting } from '@/lib/testing'
+import { useViewportLayout } from '@/lib/useViewport'
 
 /**
  * The whole scene: artwork, age capsule, ruler, and the Mono/Color toggle.
@@ -29,7 +23,11 @@ export function AgeProgression() {
   const [age, setAge] = useState(MIN_AGE)
   const [mode, setMode] = useState<ColourMode>('mono')
   const modeRef = useRef(setMode)
-  modeRef.current = setMode
+  useEffect(() => {
+    modeRef.current = setMode
+  }, [])
+
+  const layout = useViewportLayout()
 
   const engine = useMemo(
     () =>
@@ -39,6 +37,12 @@ export function AgeProgression() {
       }),
     [],
   )
+
+  // A viewport change alters the tick pitch; the ruler holds its AGE across it
+  // rather than its pixel offset.
+  useEffect(() => {
+    engine.setPitch(layout.pitch)
+  }, [engine, layout.pitch])
 
   useEffect(() => () => engine.stop(), [engine])
 
@@ -64,22 +68,35 @@ export function AgeProgression() {
       </div>
 
       {/*
-        The column is not on the viewport's vertical centre in the reference —
-        it sits COLUMN_LIFT above it. Padding the bottom of the centring box by
-        twice that lift reproduces the measured position exactly.
+        The column is NOT vertically centred in the reference — the artwork's box
+        starts at y 235 in a 1080-tall viewport, where centring would put it at
+        265. So it is positioned from the top directly: the spare space is split
+        between above and below in the measured 0.387 : 0.613 ratio.
       */}
       <div
-        className="flex min-h-dvh flex-col items-center justify-center"
-        style={{ paddingBottom: COLUMN_LIFT * 2 }}
+        className="flex min-h-dvh flex-col items-center"
+        style={{ paddingTop: layout.columnTop }}
       >
-        <FaceStack engine={engine} mono={mode === 'mono'} width={FACE.width} height={FACE.height} />
+        <FaceStack
+          engine={engine}
+          mono={mode === 'mono'}
+          width={layout.faceWidth}
+          height={layout.faceHeight}
+        />
 
-        <div style={{ marginTop: FACE_TO_PILL }}>
+        <div style={{ marginTop: FACE_TO_PILL, transform: `translateX(${COLUMN_OFFSET_X}px)` }}>
           <AgePill age={age} />
         </div>
 
-        <div style={{ marginTop: PILL_TO_RULER, transform: `translateX(${RULER_OFFSET_X}px)` }}>
-          <AgeRuler engine={engine} halfWindow={HALF_WINDOW} pitch={TICK_PITCH} age={age} />
+        <div style={{ marginTop: PILL_TO_RULER, transform: `translateX(${COLUMN_OFFSET_X}px)` }}>
+          <AgeRuler
+            engine={engine}
+            pitch={layout.pitch}
+            latticeOffset={layout.latticeOffset}
+            maxHeight={layout.tickMaxHeight}
+            minHeight={layout.tickMinHeight}
+            age={age}
+          />
         </div>
       </div>
     </main>

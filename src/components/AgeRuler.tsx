@@ -7,8 +7,10 @@ import {
   MAX_INDEX,
   MIN_AGE,
   TICK_MAX_HEIGHT,
+  TICK_MIN_HEIGHT,
   TICK_WIDTH,
   clampIndex,
+  clipWidthFor,
   envelopeRangeFor,
   tickHeight,
   visibleRange,
@@ -23,12 +25,19 @@ const POOL = 32
 
 export interface AgeRulerProps {
   engine: RulerEngine
-  /** Half the visible tick window, in px. 273 at the reference viewport. */
-  halfWindow: number
   /** Distance between tick centres, in px. 23.8 at the reference viewport. */
   pitch: number
+  /**
+   * How far the tick lattice sits right of the clip window's centre.
+   * 2.14 at the reference viewport — see LATTICE_OFFSET.
+   */
+  latticeOffset: number
   /** Announced age — kept in React state by the parent. */
   age: number
+  /** Tick height at the centre. 90 at the reference viewport. */
+  maxHeight?: number
+  /** Tick height at the edge of the envelope. 12.5 at the reference viewport. */
+  minHeight?: number
 }
 
 /**
@@ -43,14 +52,24 @@ export interface AgeRulerProps {
  * subtree, where animating CSS `height` on 23 absolutely-positioned divs would
  * cost a layout pass every frame.
  */
-export function AgeRuler({ engine, halfWindow, pitch, age }: AgeRulerProps) {
+export function AgeRuler({
+  engine,
+  pitch,
+  latticeOffset,
+  age,
+  maxHeight = TICK_MAX_HEIGHT,
+  minHeight = TICK_MIN_HEIGHT,
+}: AgeRulerProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const rectsRef = useRef<SVGRectElement[]>([])
   const hostRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ id: number; x: number } | null>(null)
 
-  const width = halfWindow * 2
-  const range = envelopeRangeFor(halfWindow)
+  const width = clipWidthFor(pitch)
+  const centre = width / 2 + latticeOffset
+  const range = envelopeRangeFor(pitch)
+  // Ticks stay 4px until the pitch gets tight enough that they would touch.
+  const tickWidth = Math.min(TICK_WIDTH, pitch * 0.17)
 
   // --- per-frame paint -----------------------------------------------------
   useEffect(() => {
@@ -58,23 +77,23 @@ export function AgeRuler({ engine, halfWindow, pitch, age }: AgeRulerProps) {
     if (!rects.length) return
 
     return engine.subscribe((index, offset) => {
-      const { first, last } = visibleRange(offset, halfWindow, pitch)
+      const { first, last } = visibleRange(offset, width / 2 + Math.abs(latticeOffset), pitch)
       const activeIndex = clampIndex(Math.round(index))
       let slot = 0
       for (let i = first; i <= last && slot < rects.length; i += 1, slot += 1) {
         const rect = rects[slot]
-        const x = halfWindow + i * pitch - offset
-        const d = Math.abs(x - halfWindow)
-        const h = tickHeight(d, range)
-        rect.setAttribute('x', String(x - TICK_WIDTH / 2))
-        rect.setAttribute('y', String(TICK_MAX_HEIGHT - h))
+        const x = centre + i * pitch - offset
+        const d = Math.abs(x - centre)
+        const h = tickHeight(d, range, maxHeight, minHeight)
+        rect.setAttribute('x', String(x - tickWidth / 2))
+        rect.setAttribute('y', String(maxHeight - h))
         rect.setAttribute('height', String(h))
         rect.setAttribute('fill', i === activeIndex ? TICK_ACTIVE : TICK_IDLE)
         rect.style.display = ''
       }
       for (; slot < rects.length; slot += 1) rects[slot].style.display = 'none'
     })
-  }, [engine, halfWindow, pitch, range])
+  }, [engine, centre, width, latticeOffset, pitch, range, tickWidth, maxHeight, minHeight])
 
   // --- wheel ---------------------------------------------------------------
   // Attached natively: React registers `wheel` passively at the root, so an
@@ -97,8 +116,12 @@ export function AgeRuler({ engine, halfWindow, pitch, age }: AgeRulerProps) {
       if (e.pointerType === 'mouse' && e.button !== 0) return
       dragRef.current = { id: e.pointerId, x: e.clientX }
       e.currentTarget.setPointerCapture(e.pointerId)
+      // A 1:1 drag is direct manipulation, so the strip must not trail the
+      // finger: at 2000px/s the 79ms follower would lag it by 11 ticks. The
+      // wheel keeps its lag, because there is nothing on screen to lag behind.
+      engine.setDragging(true)
     },
-    [],
+    [engine],
   )
 
   const onPointerMove = useCallback(
@@ -115,10 +138,11 @@ export function AgeRuler({ engine, halfWindow, pitch, age }: AgeRulerProps) {
   const endDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (dragRef.current?.id !== e.pointerId) return
     dragRef.current = null
+    engine.setDragging(false)
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId)
     }
-  }, [])
+  }, [engine])
 
   // --- keyboard ------------------------------------------------------------
   const onKeyDown = useCallback(
@@ -174,13 +198,13 @@ export function AgeRuler({ engine, halfWindow, pitch, age }: AgeRulerProps) {
       onPointerCancel={endDrag}
       onKeyDown={onKeyDown}
       className="relative touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-4 focus-visible:ring-offset-[#fdfdfd]"
-      style={{ width, height: TICK_MAX_HEIGHT, borderRadius: 4 }}
+      style={{ width, height: maxHeight, borderRadius: 4 }}
     >
       <svg
         ref={svgRef}
         width={width}
-        height={TICK_MAX_HEIGHT}
-        viewBox={`0 0 ${width} ${TICK_MAX_HEIGHT}`}
+        height={maxHeight}
+        viewBox={`0 0 ${width} ${maxHeight}`}
         className="block overflow-hidden"
         aria-hidden
         focusable="false"
@@ -191,7 +215,7 @@ export function AgeRuler({ engine, halfWindow, pitch, age }: AgeRulerProps) {
             ref={(el) => {
               if (el) rectsRef.current[i] = el
             }}
-            width={TICK_WIDTH}
+            width={tickWidth}
             x={-100}
             y={0}
             height={0}

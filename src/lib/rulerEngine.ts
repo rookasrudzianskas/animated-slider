@@ -30,6 +30,7 @@ export class RulerEngine {
   private running = false
   private subs = new Set<RulerSubscriber>()
   private roundedIndex: number
+  private dragging = false
   private onIndexSettled?: (index: number) => void
 
   constructor(initialIndex = 0, opts: RulerEngineOptions = {}) {
@@ -71,6 +72,19 @@ export class RulerEngine {
     this.emit()
   }
 
+  /**
+   * Direct manipulation bypasses the follower entirely. On release the strip is
+   * already where the pointer left it, so nothing coasts — matching the
+   * reference's complete absence of momentum.
+   */
+  setDragging(dragging: boolean) {
+    this.dragging = dragging
+    if (dragging) {
+      this.offset = this.target
+      this.emit()
+    }
+  }
+
   setTau(tau: number) {
     this.tau = tau
     if (tau <= 0) {
@@ -92,7 +106,7 @@ export class RulerEngine {
   /** Set the target and, if not smoothing, the position too. */
   setTargetPx(px: number) {
     this.target = Math.min(Math.max(px, 0), MAX_INDEX * this.pitch)
-    if (this.tau <= 0) this.offset = this.target
+    if (this.effectiveTau <= 0) this.offset = this.target
     this.start()
   }
 
@@ -121,7 +135,7 @@ export class RulerEngine {
     // Clamp dt so a backgrounded tab does not teleport the ruler on return.
     const dt = Math.min((now - this.last) / 1000, 0.1)
     this.last = now
-    this.offset = follow(this.offset, this.target, dt, this.tau)
+    this.offset = follow(this.offset, this.target, dt, this.effectiveTau)
     if (Math.abs(this.target - this.offset) < 0.01) {
       this.offset = this.target
       this.emit()
@@ -131,6 +145,10 @@ export class RulerEngine {
     }
     this.emit()
     this.raf = requestAnimationFrame(this.tick)
+  }
+
+  private get effectiveTau(): number {
+    return this.dragging ? 0 : this.tau
   }
 
   private emit() {

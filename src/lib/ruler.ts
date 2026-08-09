@@ -25,14 +25,34 @@ export const TICK_MAX_HEIGHT = 90
 export const TICK_MIN_HEIGHT = 12.5
 /**
  * Distance from the centre at which a tick reaches `TICK_MIN_HEIGHT`.
- * At the reference viewport this is 262px against a 273px half-window, i.e.
- * 0.96 of the half-window — see `envelopeRangeFor`.
+ *
+ * This is not an independent constant: it is exactly **11 pitches**. Every
+ * horizontal quantity in the ruler is a lattice multiple —
+ * `clipWidth = 23P - w`, `D = 11P` — which is why the silhouette survives a
+ * change of pitch unchanged.
  */
-export const ENVELOPE_RANGE = 262
+export const ENVELOPE_RANGE = 11 * TICK_PITCH        // 261.8
 /** Exponent of the height falloff. */
 export const ENVELOPE_EXPONENT = 1.55
-/** Half the width of the visible tick window at the reference viewport. */
-export const HALF_WINDOW = 273
+
+/**
+ * Width of the clipping window, measured from where ticks appear and disappear
+ * across all 892 frames: the leftmost inked column pins at device x 544 and the
+ * rightmost at 1631, in 93 and 173 frames respectively, and never beyond.
+ *
+ * `23P - w` = 543.4. The window is exactly wide enough that a tick at half
+ * phase is fully excluded, so the visible count alternates 23 <-> 22 and never
+ * reaches 24.
+ */
+export const CLIP_WIDTH = 23 * TICK_PITCH - TICK_WIDTH   // 543.4
+export const HALF_WINDOW = CLIP_WIDTH / 2                // 271.7
+
+/**
+ * The tick lattice does not sit on the clip window's centre — the active tick
+ * at offset 0 measures 545.37 against a window centred on 543.75. Cause
+ * unknown; reproduced as measured.
+ */
+export const LATTICE_OFFSET = 2.37
 
 /** Time constant of the exponential follower, in seconds. */
 export const FOLLOW_TAU = 0.0792
@@ -42,20 +62,24 @@ export const FOLLOW_TAU = 0.0792
  *
  * Fitted over 13 288 tick samples from the recording, RMS error 0.29px.
  */
-export function tickHeight(distance: number, range = ENVELOPE_RANGE): number {
+export function tickHeight(
+  distance: number,
+  range = ENVELOPE_RANGE,
+  maxHeight = TICK_MAX_HEIGHT,
+  minHeight = TICK_MIN_HEIGHT,
+): number {
   const u = Math.min(Math.abs(distance) / range, 1)
-  return (
-    TICK_MIN_HEIGHT +
-    (TICK_MAX_HEIGHT - TICK_MIN_HEIGHT) * Math.pow(1 - u, ENVELOPE_EXPONENT)
-  )
+  return minHeight + (maxHeight - minHeight) * Math.pow(1 - u, ENVELOPE_EXPONENT)
 }
 
-/**
- * The envelope range is tied to the visible half-window rather than being an
- * absolute constant, so a narrower ruler keeps the same silhouette.
- */
-export function envelopeRangeFor(halfWindow: number): number {
-  return halfWindow * (ENVELOPE_RANGE / HALF_WINDOW)
+/** The envelope range for a given pitch. Always eleven pitches. */
+export function envelopeRangeFor(pitch: number): number {
+  return 11 * pitch
+}
+
+/** The clip width a given pitch implies. */
+export function clipWidthFor(pitch: number): number {
+  return 23 * pitch - TICK_WIDTH
 }
 
 /** Continuous tick index for a scroll offset. */

@@ -27,7 +27,6 @@ export function AgePill({ age }: AgePillProps) {
         lineHeight: 1,
         fontWeight: 400,
         letterSpacing: 0,
-        transform: `translateX(${PILL.offsetX}px)`,
       }}
     >
       {`Age: ${age}`}
