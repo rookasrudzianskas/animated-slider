@@ -45,14 +45,35 @@ the same geometry out of any frame or screenshot so the two can be diffed as
 numbers rather than eyeballed.
 
 ```bash
+python3 scripts/prepare-reference.py   # once — rebuilds .reference/ from the video
 npm run dev
-node scripts/compare.mjs           # default frame set
-node scripts/compare.mjs 10 430 --write
+npm run verify                         # behaviour + edge cases + replay + diff
 ```
 
-Against the lossless reference frame the whole viewport currently differs by a
-mean of 0.23/255. What is left is anti-aliasing weight in the two text runs —
-same face, same size, same position, sub-pixel.
+| harness | what it holds to account |
+|---|---|
+| `scripts/compare.mjs` | still frames, per-region pixel deltas; `--lossless` diffs the full-resolution PNGs |
+| `scripts/sweep.mjs` | the same, across frames spread over the whole age range |
+| `scripts/replay.mjs` | replays real decelerations from the recording and reports the divergence |
+| `scripts/behaviour.mjs` | the 15 things a screenshot cannot see — τ, no overshoot, no snapping, clamps, inputs |
+| `scripts/edgecases.mjs` | 28 checks for what the recording never shows but a user will hit |
+| `scripts/viewports.mjs` | layout across seven viewports |
+| `scripts/measure.py` | pulls the same geometry out of any frame or screenshot, so the two can be diffed as numbers |
+
+Where it currently stands, against the full-resolution reference frames:
+
+```
+region     mean |Δ| (0-255)
+full           0.16 – 0.24
+ruler          0.28 – 0.44
+artwork        0.60 – 1.59
+capsule        5.8  – 8.4
+```
+
+The capsule and toggle residual is anti-aliasing weight in the two text runs —
+same face, same size, same position, widths matching to 0.3px. Motion replays
+diverge from the recording by at most 0.31 ticks (7px) at the peak of a
+deceleration, converging to zero.
 
 ## Layout
 

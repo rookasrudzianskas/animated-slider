@@ -10,9 +10,10 @@
     "compare": "node scripts/compare.mjs",
     "behaviour": "node scripts/behaviour.mjs",
     "viewports": "node scripts/viewports.mjs",
-    "verify": "node scripts/behaviour.mjs && node scripts/edgecases.mjs && node scripts/compare.mjs --lossless",
+    "verify": "node scripts/behaviour.mjs && node scripts/edgecases.mjs && node scripts/replay.mjs && node scripts/compare.mjs --lossless",
     "edgecases": "node scripts/edgecases.mjs",
-    "sweep": "node scripts/sweep.mjs"
+    "sweep": "node scripts/sweep.mjs",
+    "replay": "node scripts/replay.mjs"
   },
   "dependencies": {
     "motion": "^13.0.0",
