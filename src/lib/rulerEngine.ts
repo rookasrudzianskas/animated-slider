@@ -153,8 +153,14 @@ export class RulerEngine {
 
   private tick = (now: number) => {
     if (!this.running) return
-    // Clamp dt so a backgrounded tab does not teleport the ruler on return.
-    const dt = Math.min((now - this.last) / 1000, 0.1)
+    // dt is clamped at BOTH ends. The ceiling stops a backgrounded tab
+    // teleporting the ruler on return. The floor matters more: `last` is
+    // stamped with performance.now() inside the input handler, which runs part
+    // way through a frame, while `now` is that frame's start timestamp — so the
+    // first tick of a gesture can see a negative dt. That makes alpha negative
+    // and the strip lurches AWAY from the target, past the clamp, by an amount
+    // that grows with the size of the gesture.
+    const dt = Math.min(Math.max((now - this.last) / 1000, 0), 0.1)
     this.last = now
     this.offset = follow(this.offset, this.target, dt, this.effectiveTau)
     if (Math.abs(this.target - this.offset) < 0.01) {

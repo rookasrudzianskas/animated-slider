@@ -271,6 +271,70 @@ check(
   (await page.getByRole('radio', { name: 'Mono' }).getAttribute('aria-checked')) === 'true',
 )
 
+// --- no backwards lurch at the start of a gesture ---------------------------
+// `last` is stamped mid-frame in the input handler while the rAF timestamp is
+// the frame's start, so the first tick could see a negative dt — which inverts
+// the follower and throws the strip away from the target, past the clamp.
+const lurches = []
+for (const delta of [300, 600, 1200, 2200]) {
+  const r = await page.evaluate(async (d) => {
+    window.__slider.setIndex(0)
+    await new Promise((res) => setTimeout(res, 250))
+    const seen = []
+    let stop = false
+    const t = () => {
+      seen.push(window.__slider.getIndex())
+      if (!stop) requestAnimationFrame(t)
+    }
+    requestAnimationFrame(t)
+    document
+      .querySelector('[role="slider"]')
+      .dispatchEvent(new WheelEvent('wheel', { deltaY: d, bubbles: true, cancelable: true }))
+    await new Promise((res) => setTimeout(res, 900))
+    stop = true
+    return { min: Math.min(...seen), max: Math.max(...seen) }
+  }, delta)
+  lurches.push({ delta, ...r })
+}
+check(
+  'no gesture drives the index below 0',
+  lurches.every((l) => l.min >= -0.001),
+  lurches.map((l) => `${l.delta}px:${l.min.toFixed(4)}`).join(' '),
+)
+check(
+  'no gesture drives the index above 90',
+  lurches.every((l) => l.max <= 90.001),
+  lurches.map((l) => `${l.delta}px:${l.max.toFixed(3)}`).join(' '),
+)
+
+// --- the capsule and the ruler change on the same frame ---------------------
+const sync = await page.evaluate(async () => {
+  window.__slider.setIndex(5)
+  await new Promise((r) => setTimeout(r, 250))
+  const rows = []
+  let stop = false
+  const t = () => {
+    rows.push([window.__slider.getIndex(), document.querySelector('[data-pill]').textContent])
+    if (!stop) requestAnimationFrame(t)
+  }
+  await new Promise((r) => setTimeout(r, 60))
+  document
+    .querySelector('[role="slider"]')
+    .dispatchEvent(new WheelEvent('wheel', { deltaY: 700, bubbles: true, cancelable: true }))
+  requestAnimationFrame(t)
+  await new Promise((r) => setTimeout(r, 700))
+  stop = true
+  const bad = rows.filter(
+    ([i, txt]) => `Age: ${Math.min(Math.max(Math.round(i), 0), 90) + 5}` !== txt,
+  )
+  return { frames: rows.length, bad: bad.length }
+})
+check(
+  'the capsule never lags the ruler by a frame',
+  sync.bad === 0,
+  `${sync.bad} of ${sync.frames} frames disagreed`,
+)
+
 // --- the whole instrument fits at WCAG's reflow target -----------------------
 const small = await browser.newPage({ viewport: { width: 320, height: 256 }, deviceScaleFactor: 1 })
 await small.goto(URL_BASE, { waitUntil: 'networkidle' })

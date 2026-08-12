@@ -33,6 +33,9 @@ export function AgeProgression() {
     () =>
       new RulerEngine(0, {
         pitch: TICK_PITCH,
+        // React state carries the announced value and the artwork's text
+        // alternative, both of which can lag a frame without anyone noticing.
+        // The capsule does NOT go through here — see AgePill.
         onIndexSettled: (index) => setAge(index + MIN_AGE),
       }),
     [],
@@ -86,7 +89,7 @@ export function AgeProgression() {
         />
 
         <div style={{ marginTop: FACE_TO_PILL, transform: `translateX(${COLUMN_OFFSET_X}px)` }}>
-          <AgePill age={age} />
+          <AgePill engine={engine} age={age} />
         </div>
 
         <div style={{ marginTop: PILL_TO_RULER, transform: `translateX(${COLUMN_OFFSET_X}px)` }}>
