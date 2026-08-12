@@ -65,6 +65,24 @@ export function loadFace(index: number): Promise<HTMLImageElement> {
   return promise
 }
 
+/**
+ * The decoded image nearest to `index` that is actually available.
+ *
+ * A scrub can outrun decoding. Rather than let the artwork blank for a frame,
+ * fall back to the closest age that is ready — the face stays on screen and
+ * simply lags a year or two until the right one lands.
+ */
+export function getNearestFace(index: number, radius = 12): HTMLImageElement | undefined {
+  const start = Math.round(index)
+  for (let r = 0; r <= radius; r += 1) {
+    const lo = cache.get(start - r)
+    if (lo) return lo
+    const hi = cache.get(start + r)
+    if (hi) return hi
+  }
+  return undefined
+}
+
 /** Keep the images around `index` decoded so a fast scroll never waits. */
 export function warmAround(index: number, radius = 4): void {
   const lo = Math.max(0, Math.round(index) - radius)

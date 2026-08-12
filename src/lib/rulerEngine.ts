@@ -98,6 +98,21 @@ export class RulerEngine {
     this.setTargetPx(this.target + deltaPx)
   }
 
+  /** The index the ruler is heading for, which is not where it is yet. */
+  get targetIndex(): number {
+    return this.target / this.pitch
+  }
+
+  /**
+   * Move a whole number of ticks from where the ruler is HEADED, not from where
+   * it currently is. Keying right twice inside the follower's 79ms settle has to
+   * land two years on, not one — reading `index` here would make every press
+   * during the animation compute the same destination.
+   */
+  stepBy(delta: number) {
+    this.setTargetPx(clampIndex(Math.round(this.targetIndex) + delta) * this.pitch)
+  }
+
   /** Jump to a whole tick index — used by the keyboard, which cannot express a fraction. */
   stepTo(index: number) {
     this.setTargetPx(clampIndex(index) * this.pitch)

@@ -27,6 +27,10 @@ export function AgePill({ age }: AgePillProps) {
         lineHeight: 1,
         fontWeight: 400,
         letterSpacing: 0,
+        // The reference sets "Age: 17" and "Age: 24" to the SAME 80.5px width,
+        // so its figures are tabular. With proportional figures the capsule
+        // visibly breathes as you scrub past every 1.
+        fontVariantNumeric: 'tabular-nums',
       }}
     >
       {`Age: ${age}`}

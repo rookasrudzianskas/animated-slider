@@ -147,36 +147,38 @@ export function AgeRuler({
   // --- keyboard ------------------------------------------------------------
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
-      const current = Math.round(engine.index)
-      let next: number | null = null
+      // Keys move by whole years — a keyboard user cannot express a fraction —
+      // and they step from the ruler's TARGET, so presses during the follower's
+      // settle accumulate instead of all resolving to the same destination.
+      let step: number | null = null
+      let absolute: number | null = null
       switch (e.key) {
         case 'ArrowLeft':
         case 'ArrowDown':
-          next = current - 1
+          step = -1
           break
         case 'ArrowRight':
         case 'ArrowUp':
-          next = current + 1
+          step = 1
           break
         case 'PageDown':
-          next = current - 10
+          step = -10
           break
         case 'PageUp':
-          next = current + 10
+          step = 10
           break
         case 'Home':
-          next = 0
+          absolute = 0
           break
         case 'End':
-          next = MAX_INDEX
+          absolute = MAX_INDEX
           break
         default:
           return
       }
       e.preventDefault()
-      // Keys move by whole years: a keyboard user cannot express a fraction, so
-      // stepping also squares up the fractional offset the wheel may have left.
-      engine.stepTo(clampIndex(next))
+      if (absolute !== null) engine.stepTo(absolute)
+      else if (step !== null) engine.stepBy(step)
     },
     [engine],
   )

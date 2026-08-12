@@ -6,6 +6,9 @@ far more reliable than looking at two crops side by side.
 
     python3 scripts/measure.py <image.png> [--json]
 
+Reference frames come from `.reference/` — build them with
+`python3 scripts/prepare-reference.py`.
+
 All outputs are CSS px (device px / 2).
 """
 import json

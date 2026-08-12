@@ -29,12 +29,13 @@ export const FACE_TO_PILL = 2
 export const PILL_TO_RULER = 17.9
 
 /**
- * Age pill. Measured: 30 tall, 71.5 wide for "Age: 5" with 42.0px of text ink,
- * so 14.75 of padding a side.
+ * Age capsule. Measured: 30 tall; 71.5 wide for "Age: 5" and 80.5 for both
+ * "Age: 17" and "Age: 24" — identical for any two-digit age, which is what
+ * gives away the tabular figures.
  */
 export const PILL = {
   height: 30,
-  paddingInline: 14.25,
+  paddingInline: 13.75,
   fontSize: 15,
 } as const
 

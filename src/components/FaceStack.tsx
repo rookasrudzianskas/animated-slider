@@ -2,7 +2,16 @@
 
 import { useEffect, useRef } from 'react'
 
-import { FACE_CSS_H, FACE_CSS_W, FACE_H, FACE_W, getFace, prefetchAll, warmAround } from '@/lib/faces'
+import {
+  FACE_CSS_H,
+  FACE_CSS_W,
+  FACE_H,
+  FACE_W,
+  getFace,
+  getNearestFace,
+  prefetchAll,
+  warmAround,
+} from '@/lib/faces'
 import { faceBlend } from '@/lib/ruler'
 import type { RulerEngine } from '@/lib/rulerEngine'
 
@@ -47,29 +56,35 @@ export function FaceStack({ engine, mono, width = FACE_CSS_W, height = FACE_CSS_
         warmedFor = Math.round(index)
         warmAround(index)
       }
-      const a = getFace(lo)
-      const b = lo === hi ? undefined : getFace(hi)
-      ctx.clearRect(0, 0, FACE_W, FACE_H)
-      if (a) {
-        ctx.globalAlpha = 1
-        ctx.drawImage(a, 0, 0, FACE_W, FACE_H)
+      const exact = getFace(lo)
+      // Never clear without something to put back: a scrub can outrun decoding,
+      // and a single blank frame reads as a flicker.
+      const a = exact ?? getNearestFace(index)
+      if (!a) {
+        schedule()
+        return
       }
+      const b = lo === hi || !exact ? undefined : getFace(hi)
+      ctx.clearRect(0, 0, FACE_W, FACE_H)
+      ctx.globalAlpha = 1
+      ctx.drawImage(a, 0, 0, FACE_W, FACE_H)
       if (b && t > 0) {
         ctx.globalAlpha = t
         ctx.drawImage(b, 0, 0, FACE_W, FACE_H)
         ctx.globalAlpha = 1
       }
-      // The engine stops emitting once the ruler settles, so if either image
-      // was still decoding we have to keep repainting on our own — otherwise
-      // the canvas stays on whatever was ready at the moment it came to rest.
-      if (!a || (b === undefined && lo !== hi)) {
-        if (!pendingRaf) {
-          pendingRaf = requestAnimationFrame(() => {
-            pendingRaf = 0
-            paint(engine.index)
-          })
-        }
-      }
+      // The engine stops emitting once the ruler settles, so if either image of
+      // the pair was still decoding we keep repainting on our own — otherwise
+      // the canvas stays on whatever was ready when it came to rest.
+      if (!exact || (b === undefined && lo !== hi)) schedule()
+    }
+
+    function schedule() {
+      if (pendingRaf) return
+      pendingRaf = requestAnimationFrame(() => {
+        pendingRaf = 0
+        paint(engine.index)
+      })
     }
 
     const unsubscribe = engine.subscribe(paint)
