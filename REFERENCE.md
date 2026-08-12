@@ -328,3 +328,43 @@ Everything else the audit flagged had no fidelity cost, so it was fixed:
   an SVG `fill` attribute is otherwise not remapped and the indicator vanishes
 - the Mono/Color group behaves like an ARIA radiogroup: one tab stop, arrow keys
 - the whole instrument fits and stays operable at 320x256
+
+---
+
+## 11. Findings that were measured, checked, and NOT acted on
+
+An adversarial pass produced four sub-pixel findings about the reference that
+turn out to be right about the reference and wrong as instructions. Each was
+implemented, measured against the recording, and reverted because it made the
+pixel comparison *worse*. Recorded here so nobody re-derives them.
+
+**Tick pitch "should be" 23.822, not 23.800.** A least-squares lattice fit over
+sub-pixel tick centroids gives 23.8188 / 23.8226 / 23.8188 (residual rms
+0.03–0.10 px) — so the reference's pitch really is ≈23.820. But changing
+`TICK_PITCH` moves `CLIP_WIDTH`, `ENVELOPE_RANGE` and the calibrated
+`LATTICE_OFFSET` with it, and the measured ruler difference went from 0.23 to
+0.46. The constant is calibrated as a set, against the painted result.
+
+**The toggle's border "should be" a real 1.30px ring.** It should: Blink floors
+`border-width` to a whole device pixel, so `1.3` ships as `1.0` and the outline
+carries integrated ink of 50 against the reference's 66.4. Rebuilding it as a
+padded background ring paints the fractional width correctly — and made the
+toggle difference go from 4.83 to 8.67, because the ring's inner edge then lands
+on a different device row than the reference's.
+
+**The two toggle segments are not equal width** (53.64 vs 52.94, sub-pixel).
+True, but giving them explicit widths made the control worse, for the same
+reason: their painted edges move to different device rows.
+
+**Individual tick heights sit up to 2.6px off the fitted envelope.** Also true,
+and it is not codec noise — the reference's own frame-to-frame repeatability is
+0.04–0.32px. But the best power-law refit over 90 cursor-free samples only moves
+the rms from 0.918 to 0.837, so no smooth curve does better. The tell is
+contrast: the *black* tick, the one measurement not subject to a
+50 %-crossing's bias on codec-blurred low-contrast edges, matches to **0.02px**.
+The grey ticks read ~0.4px short in the recording because their tops are soft
+and faint, not because the geometry differs.
+
+The lesson each time: the reference frame is the oracle for *rendered pixels*,
+not for the CSS that produced them. A number measured off the recording is only
+worth adopting if it moves the painted comparison the right way.
