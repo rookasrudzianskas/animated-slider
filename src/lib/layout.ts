@@ -21,20 +21,25 @@ export const PAGE_BG = '#fdfdfd'
 export const COLUMN_OFFSET_X = -1.25
 
 /** Face artwork box. */
-export const FACE = { width: 310, height: 410, top: 235 } as const
+export const FACE = { width: 310, height: 410, top: 235.19 } as const
 
 /** Gap between the bottom of the face box and the top of the age pill. */
 export const FACE_TO_PILL = 2
-/** Gap between the bottom of the age pill and the top of the ruler box. */
-export const PILL_TO_RULER = 17.9
+/**
+ * Gap between the bottom of the age capsule and the top of the ruler box.
+ * Reference: ruler top 695.905 minus capsule bottom 677.390.
+ */
+export const PILL_TO_RULER = 18.52
 
 /**
- * Age capsule. Measured: 30 tall; 71.5 wide for "Age: 5" and 80.5 for both
- * "Age: 17" and "Age: 24" — identical for any two-digit age, which is what
- * gives away the tabular figures.
+ * Age capsule. Sub-pixel measurements of the flat top and bottom edges, median
+ * over 75-93 columns and agreeing to 0.003 across three reference frames:
+ * top 646.94, bottom 677.39, height 30.445. Width 71.5 for "Age: 5" and 80.5
+ * for both "Age: 17" and "Age: 24" — identical for any two-digit age, which is
+ * what gives away the tabular figures.
  */
 export const PILL = {
-  height: 30,
+  height: 30.45,
   paddingInline: 13.75,
   fontSize: 15,
 } as const

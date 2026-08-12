@@ -271,6 +271,25 @@ check(
   (await page.getByRole('radio', { name: 'Mono' }).getAttribute('aria-checked')) === 'true',
 )
 
+// --- the vertical stack lands where the reference's does --------------------
+// Sub-pixel measurements of the reference's flat edges, median over 75-93
+// columns and agreeing to 0.003 across three frames. Compared against DOM box
+// values, which sit ~0.22 above a 50%-crossing of the painted antialiased edge
+// — hence the 0.3 tolerance. The painted comparison is compare.mjs --lossless.
+const REF_STACK = { capsuleTop: 646.945, capsuleHeight: 30.445, rulerTop: 695.905, rulerBottom: 785.922 }
+const stack = await page.evaluate(() => {
+  const pill = document.querySelector('[data-pill]').getBoundingClientRect()
+  const ruler = document.querySelector('[role="slider"]').getBoundingClientRect()
+  return { capsuleTop: pill.top, capsuleHeight: pill.height, rulerTop: ruler.top, rulerBottom: ruler.bottom }
+})
+for (const [key, expected] of Object.entries(REF_STACK)) {
+  check(
+    `${key} matches the reference`,
+    Math.abs(stack[key] - expected) < 0.3,
+    `${stack[key].toFixed(3)} vs ${expected} (Δ ${(stack[key] - expected).toFixed(3)})`,
+  )
+}
+
 // --- no backwards lurch at the start of a gesture ---------------------------
 // `last` is stamped mid-frame in the input handler while the rAF timestamp is
 // the frame's start, so the first tick could see a negative dt — which inverts

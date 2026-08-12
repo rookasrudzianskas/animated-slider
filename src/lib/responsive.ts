@@ -29,10 +29,10 @@ const TOGGLE_BAND = 15.5 + TOGGLE.height
 
 /**
  * Share of the spare vertical space that sits above the column. Derived, not
- * chosen: at the reference the face top measures 235, which is 186 below the
- * toggle band out of 481.1 spare.
+ * chosen: at the reference the artwork's box top is FACE.top, which is that
+ * much below the toggle band out of whatever is spare.
  */
-const TOP_SHARE = 186 / (1080 - TOGGLE_BAND - COLUMN_HEIGHT)
+const TOP_SHARE = (FACE.top - TOGGLE_BAND) / (1080 - TOGGLE_BAND - COLUMN_HEIGHT)
 
 export interface ResponsiveLayout {
   pitch: number

@@ -33,8 +33,13 @@ Vertical anchors (CSS px from the top of a 1080-tall viewport):
 |---|---|---|---|
 | Mono/Color toggle | 15.5 | 48.5 | 33.5 |
 | face artwork (ink bbox varies by age) | ≈266 | ≈610 | — |
-| “Age: N” pill | 647.5 | 677.5 | 30.0 |
-| ruler ticks (baseline is flat) | 696.0 (tallest tick top) | 785.9 (shared baseline) | 90 max |
+| “Age: N” capsule | 646.945 | 677.390 | 30.445 |
+| ruler ticks (baseline is flat) | 695.905 (tallest tick top) | 785.922 (shared baseline) | 90.016 |
+
+The capsule and ruler rows are sub-pixel: 50 %-crossings of the flat edges,
+median over 75–93 columns, agreeing to **0.003 px** across frames 10, 430 and
+870. Threshold-based reads of the same edges are ~0.5 px light — they were what
+first put the capsule at “30.0” and the whole stack 1.17 px high.
 
 ---
 
@@ -63,12 +68,14 @@ is no slide, no crossfade, no intermediate state anywhere in the recording.
 ## 3. “Age: N” pill
 
 ```
-height        30.0
-width         hugs content (71.5 for “Age: 5”, 80.5 for “Age: 24”)
+height        30.445
+width         hugs content (71.5 for “Age: 5”, 80.5 for “Age: 17” AND “Age: 24”
+              — identical for any two-digit age, which is what gives away the
+              tabular figures)
 border-radius 9999px  (circular arc, rms 0.05 device px; radius = height/2)
 fill          #000000
 text          #FFFFFF, "Age: {value}"  — 15px, 42.0px of ink for “Age: 5”
-centre        x = 543.75, top = 647.5
+centre        x = 543.75, top = 646.945
 ```
 
 ---
