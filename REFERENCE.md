@@ -7,13 +7,15 @@ The recording is a **DPR-2 capture of a 1090 × 1080 CSS viewport**, so
 `CSS px = device px / 2`. All numbers below are **CSS px at that viewport**.
 Measurement uncertainty is ≈ ±0.25 px unless stated.
 
-Reference frames live in the scratchpad:
-`/private/tmp/claude-501/-Users-rokasrudzianskas-Documents-slider/5e786c9c-4db0-4d85-accf-4c8db887cebf/scratchpad/`
-- `frames_all/f_0001.jpg … f_0892.jpg` — every frame, 1090 px wide (= 1 CSS px per px)
-- `png/rest_01.png` — lossless full-res frame 10 (initial resting state)
+Rebuild the reference data with `python3 scripts/prepare-reference.py`. It
+writes to `.reference/` (gitignored):
+- `frames/f_0001.jpg … f_0892.jpg` — every frame, 1090 px wide (= 1 CSS px per px)
+- `png/rest_01.png`, `rest_02`, `rest_03`, `color_active` — lossless full-res frames
 - `strip/s_NNNN.png` — full-res crop of the pill+ruler band (y 1270…1620 device)
-- `frames.json` — per-frame extracted tick/indicator geometry
-- `faces_manifest.json` — provenance of every generated face asset
+- `toggle/t_NNNN.png` — full-res crop of the Mono/Color control
+- `frames.json` — per-frame tick/indicator geometry
+- `toggle.json`, `cursor2.json`, `index.json` — mode, pointer bbox and ruler
+  position per frame
 
 ---
 
@@ -246,11 +248,19 @@ change anything the recording *does* show:
 
 The recording is the oracle. To check any change:
 
-1. `npm run dev`, then screenshot at **exactly 1090 × 1080, deviceScaleFactor 2**.
-2. Drive the app to the same ruler position as a reference frame (the app exposes
-   `window.__slider` for this — see `src/lib/testing.ts`).
-3. Diff against `scratchpad/frames_all/f_NNNN.jpg` (1090 px wide = 1 CSS px per px).
-4. `scripts/compare.mjs` does 1–3 and prints per-region pixel deltas.
+```bash
+python3 scripts/prepare-reference.py    # once, from the source recording
+npm run dev
+npm run verify                          # behaviour + edge cases + still comparison
+node scripts/compare.mjs --lossless     # the strict diff, against the full-res PNGs
+node scripts/sweep.mjs 60               # 60 frames spread across the age range
+node scripts/viewports.mjs              # layout across seven viewports
+python3 scripts/measure.py <image.png>  # the same geometry from any frame or shot
+```
+
+Each harness drives the app through `window.__slider` (`src/lib/testing.ts`),
+shoots at exactly 1090 × 1080 at deviceScaleFactor 2, and masks the recording's
+mouse pointer — which a screenshot does not have — before diffing.
 
 ---
 
