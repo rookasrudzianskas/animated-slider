@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 /** Screenshot the app across viewports so the responsive rules can be eyeballed. */
+import { mkdirSync } from 'node:fs'
 import path from 'node:path'
+
 import { chromium } from 'playwright'
 
-const OUT =
-  '/private/tmp/claude-501/-Users-rokasrudzianskas-Documents-slider/5e786c9c-4db0-4d85-accf-4c8db887cebf/scratchpad/compare'
+import { REFERENCE_DIR } from './reference.mjs'
+
+const OUT = path.join(REFERENCE_DIR, 'viewports')
+mkdirSync(OUT, { recursive: true })
 const SIZES = [
   ['reference', 1090, 1080],
   ['desktop', 1440, 900],

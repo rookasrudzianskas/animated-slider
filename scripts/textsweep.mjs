@@ -10,10 +10,11 @@ import path from 'node:path'
 
 import { chromium } from 'playwright'
 
-const SCRATCH =
-  '/private/tmp/claude-501/-Users-rokasrudzianskas-Documents-slider/5e786c9c-4db0-4d85-accf-4c8db887cebf/scratchpad'
-const OUT = path.join(SCRATCH, 'compare')
-const REF = path.join(SCRATCH, 'png', 'rest_01.png')
+import { REFERENCE_DIR, losslessPath, requireReference } from './reference.mjs'
+
+requireReference()
+const OUT = path.join(REFERENCE_DIR, 'compare')
+const REF = losslessPath('rest_01')
 
 const WEIGHTS = [400, 450, 500]
 const SIZES = [14.8, 15, 15.2]
