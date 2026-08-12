@@ -19,6 +19,7 @@ export function AgePill({ age }: AgePillProps) {
     <div
       aria-hidden
       data-pill
+      data-chrome
       className="flex items-center justify-center rounded-full bg-black text-white"
       style={{
         height: PILL.height,

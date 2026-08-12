@@ -20,9 +20,9 @@ import {
 const SIDE_MARGIN = 24
 /** The pitch below which ticks stop reading as a ruler. */
 const MIN_PITCH = 10
-const MIN_VERTICAL_GAP = 24
-const MIN_TICK_HEIGHT = 56
-const MIN_FACE_HEIGHT = 160
+const MIN_VERTICAL_GAP = 8
+const MIN_TICK_HEIGHT = 40
+const MIN_FACE_HEIGHT = 48
 
 /** Height the toggle occupies at the top, including its inset. */
 const TOGGLE_BAND = 15.5 + TOGGLE.height
@@ -72,7 +72,12 @@ export function layoutFor(width: number, height: number): ResponsiveLayout {
 
   const columnHeight = faceHeight + chrome
   const spare = Math.max(0, height - TOGGLE_BAND - columnHeight)
-  const topGap = Math.max(MIN_VERTICAL_GAP, spare * TOP_SHARE)
+  // Never push the ruler below the fold: at WCAG's 320x256 reflow target the
+  // whole instrument still has to be on screen and operable.
+  const topGap = Math.min(
+    Math.max(MIN_VERTICAL_GAP, spare * TOP_SHARE),
+    Math.max(0, height - columnHeight - TOGGLE_BAND),
+  )
 
   return {
     pitch,

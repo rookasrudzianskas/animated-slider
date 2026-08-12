@@ -284,3 +284,30 @@ Also confirmed, with evidence rather than assumption:
   window is `23P − w`, the envelope range is exactly `11P`. So `D/halfWindow`
   is a constant and the silhouette survives a change of pitch — which is why the
   responsive rule shrinks the pitch and keeps all 23 ticks.
+
+---
+
+## 10. Where fidelity and accessibility disagree
+
+One measured value fails an audit, and it is kept anyway because the recording
+is the source of truth:
+
+> **The idle toggle label is `#949494` on `#FDFDFD` — a contrast ratio of
+> 2.98:1, below the 4.5:1 WCAG AA needs for 12px text.**
+>
+> The colour is not a guess: it comes from a blur-independent ratio derived in
+> §9 from the same glyphs rendered white-on-black and grey-on-page. Changing it
+> would be a redesign, and the brief is a recreation. It is recorded here rather
+> than quietly corrected.
+
+Everything else the audit flagged had no fidelity cost, so it was fixed:
+
+- focus rings raised to `#6b6b6b` (3.4:1) — the reference never shows one, so
+  there is nothing to match
+- `maximum-scale`/`user-scalable` removed from the viewport meta
+- `ctrl+wheel` left to the browser, so a trackpad pinch zooms instead of scrubbing
+- layout reads `innerWidth`, not `visualViewport`, so pinch-zoom magnifies
+- the ticks map to `GrayText`/`Highlight` under `forced-colors: active`, where
+  an SVG `fill` attribute is otherwise not remapped and the indicator vanishes
+- the Mono/Color group behaves like an ARIA radiogroup: one tab stop, arrow keys
+- the whole instrument fits and stays operable at 320x256

@@ -73,14 +73,20 @@ export class RulerEngine {
   }
 
   /**
-   * Direct manipulation bypasses the follower entirely. On release the strip is
-   * already where the pointer left it, so nothing coasts — matching the
-   * reference's complete absence of momentum.
+   * Direct manipulation bypasses the follower, so the strip does not trail the
+   * finger. On release it is already where the pointer left it, so nothing
+   * coasts — matching the reference's complete absence of momentum.
+   *
+   * Taking hold pulls the TARGET back to where the strip currently is, never
+   * the other way round: snapping the strip forward to a pending wheel target
+   * would teleport it up to a screenful in a single frame just because the user
+   * put a finger down.
    */
   setDragging(dragging: boolean) {
+    if (dragging === this.dragging) return
     this.dragging = dragging
     if (dragging) {
-      this.offset = this.target
+      this.target = this.offset
       this.emit()
     }
   }

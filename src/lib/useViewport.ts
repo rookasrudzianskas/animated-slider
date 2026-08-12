@@ -9,8 +9,7 @@ import { layoutFor, type ResponsiveLayout } from './responsive'
  * The responsive layout for the current viewport.
  *
  * Server-renders at the reference size so the first paint is the reference,
- * then corrects on mount. `visualViewport` is preferred where it exists so the
- * iOS keyboard and toolbars do not make the ruler jump.
+ * then corrects before paint on the client.
  */
 /**
  * Runs before paint on the client, and is a no-op during SSR. Without it a phone
@@ -22,13 +21,11 @@ export function useViewportLayout(): ResponsiveLayout {
   const [size, setSize] = useState(REFERENCE_VIEWPORT as { width: number; height: number })
 
   useIsomorphicLayoutEffect(() => {
-    const read = () => {
-      const vv = window.visualViewport
-      setSize({
-        width: Math.round(vv?.width ?? window.innerWidth),
-        height: Math.round(vv?.height ?? window.innerHeight),
-      })
-    }
+    // innerWidth/innerHeight, NOT visualViewport: the visual viewport shrinks
+    // when the user pinch-zooms, so reading it would re-lay-out smaller and
+    // cancel the magnification instead of providing it.
+    const read = () =>
+      setSize({ width: Math.round(window.innerWidth), height: Math.round(window.innerHeight) })
     read()
     window.addEventListener('resize', read)
     window.visualViewport?.addEventListener('resize', read)

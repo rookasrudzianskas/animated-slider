@@ -20,6 +20,17 @@ import type { RulerEngine } from '@/lib/rulerEngine'
 const TICK_IDLE = '#eeeeee'
 const TICK_ACTIVE = '#000000'
 
+/**
+ * Wheel deltas are only in pixels when deltaMode is DOM_DELTA_PIXEL. Firefox
+ * with a physical wheel reports lines, and a page-mode wheel reports pages;
+ * without this a notch moves the ruler about an eighth of a year.
+ */
+function wheelScale(deltaMode: number): number {
+  if (deltaMode === 1) return 16 // lines -> px, at the root font size
+  if (deltaMode === 2) return 400 // pages -> px, about a viewport
+  return 1
+}
+
 /** How many <rect>s to keep in the pool — the window plus a little slack. */
 const POOL = 32
 
@@ -88,7 +99,9 @@ export function AgeRuler({
         rect.setAttribute('x', String(x - tickWidth / 2))
         rect.setAttribute('y', String(maxHeight - h))
         rect.setAttribute('height', String(h))
-        rect.setAttribute('fill', i === activeIndex ? TICK_ACTIVE : TICK_IDLE)
+        const isActive = i === activeIndex
+        rect.setAttribute('fill', isActive ? TICK_ACTIVE : TICK_IDLE)
+        rect.setAttribute('data-tick', isActive ? 'active' : 'idle')
         rect.style.display = ''
       }
       for (; slot < rects.length; slot += 1) rects[slot].style.display = 'none'
@@ -102,9 +115,13 @@ export function AgeRuler({
     const host = hostRef.current
     if (!host) return
     const onWheel = (e: WheelEvent) => {
+      // ctrl+wheel is the browser's zoom gesture — a macOS trackpad pinch
+      // arrives this way. Swallowing it would scrub the age instead of zooming
+      // and would block zoom outright.
+      if (e.ctrlKey) return
       e.preventDefault()
-      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
-      engine.nudge(delta)
+      const raw = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
+      engine.nudge(raw * wheelScale(e.deltaMode))
     }
     host.addEventListener('wheel', onWheel, { passive: false })
     return () => host.removeEventListener('wheel', onWheel)
@@ -114,6 +131,10 @@ export function AgeRuler({
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return
+      // A second finger must not steal the drag from the first: overwriting the
+      // ref would leave the original pointer's moves failing the id check
+      // forever, and the ruler dead under a finger that is still on it.
+      if (dragRef.current) return
       dragRef.current = { id: e.pointerId, x: e.clientX }
       e.currentTarget.setPointerCapture(e.pointerId)
       // A 1:1 drag is direct manipulation, so the strip must not trail the
@@ -199,7 +220,8 @@ export function AgeRuler({
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
       onKeyDown={onKeyDown}
-      className="relative touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-4 focus-visible:ring-offset-[#fdfdfd]"
+      data-chrome
+      className="relative touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-[#6b6b6b] focus-visible:ring-offset-4 focus-visible:ring-offset-[#fdfdfd]"
       style={{ width, height: maxHeight, borderRadius: 4 }}
     >
       <svg
@@ -217,6 +239,7 @@ export function AgeRuler({
             ref={(el) => {
               if (el) rectsRef.current[i] = el
             }}
+            data-tick="idle"
             width={tickWidth}
             x={-100}
             y={0}

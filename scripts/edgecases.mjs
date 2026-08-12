@@ -169,6 +169,131 @@ const blanks = await page.evaluate(async () => {
 })
 check('the artwork never blanks during a fast scrub', blanks === 0, `${blanks} blank frames of 45`)
 
+// --- taking hold must not teleport the strip --------------------------------
+// Pressing the button mid-flight used to snap the ruler to the wheel's pending
+// target: up to a screenful of travel in one frame, for a gesture that moved
+// nothing.
+await page.evaluate(() => window.__slider.setIndex(30))
+await settle(300)
+const teleport = await page.evaluate(async () => {
+  const el = document.querySelector('[role="slider"]')
+  el.dispatchEvent(new WheelEvent('wheel', { deltaY: 238, bubbles: true, cancelable: true }))
+  await new Promise((r) => setTimeout(r, 60))
+  const before = window.__slider.getIndex()
+  el.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, clientX: 500, button: 0, bubbles: true }))
+  await new Promise((r) => requestAnimationFrame(r))
+  const after = window.__slider.getIndex()
+  el.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, clientX: 500, bubbles: true }))
+  return { before, after }
+})
+check(
+  'pressing the button mid-flight does not teleport the strip',
+  Math.abs(teleport.after - teleport.before) < 0.2,
+  `index ${teleport.before.toFixed(3)} -> ${teleport.after.toFixed(3)} in one frame`,
+)
+
+// --- a second finger must not kill the first --------------------------------
+await page.evaluate(() => window.__slider.setIndex(45))
+await settle(300)
+const twoFinger = await page.evaluate(async () => {
+  const el = document.querySelector('[role="slider"]')
+  const send = (type, id, x) =>
+    el.dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, pointerType: 'touch', bubbles: true, isPrimary: id === 1 }))
+  el.setPointerCapture = () => {}
+  el.releasePointerCapture = () => {}
+  el.hasPointerCapture = () => false
+  send('pointerdown', 1, 500)
+  send('pointermove', 1, 470)
+  const afterFirst = window.__slider.getIndex()
+  send('pointerdown', 2, 300) // a second finger lands
+  send('pointermove', 1, 440) // the first keeps moving
+  const afterSecond = window.__slider.getIndex()
+  send('pointerup', 2, 300)
+  send('pointerup', 1, 440)
+  return { afterFirst, afterSecond }
+})
+check(
+  'a second finger does not kill the first finger\'s drag',
+  twoFinger.afterSecond - twoFinger.afterFirst > 1,
+  `index ${twoFinger.afterFirst.toFixed(3)} -> ${twoFinger.afterSecond.toFixed(3)}`,
+)
+
+// --- ctrl+wheel belongs to the browser --------------------------------------
+await page.evaluate(() => window.__slider.setIndex(40))
+await settle(300)
+const zoom = await page.evaluate(() => {
+  const el = document.querySelector('[role="slider"]')
+  const e = new WheelEvent('wheel', { deltaY: 100, ctrlKey: true, bubbles: true, cancelable: true })
+  el.dispatchEvent(e)
+  return { prevented: e.defaultPrevented, index: window.__slider.getIndex() }
+})
+await settle(400)
+check('ctrl+wheel (pinch zoom) is left to the browser', !zoom.prevented, `defaultPrevented=${zoom.prevented}`)
+check('ctrl+wheel does not scrub the age', Math.abs((await idx()) - 40) < 0.01)
+
+// --- line-mode wheels ---------------------------------------------------------
+await page.evaluate(() => window.__slider.setIndex(40))
+await settle(300)
+await page.evaluate(() => {
+  const el = document.querySelector('[role="slider"]')
+  for (let i = 0; i < 3; i += 1)
+    el.dispatchEvent(new WheelEvent('wheel', { deltaY: 3, deltaMode: 1, bubbles: true, cancelable: true }))
+})
+await settle()
+const lineMode = await idx()
+check(
+  'a line-mode wheel moves a sensible distance',
+  lineMode - 40 > 3,
+  `3 notches of 3 lines moved ${(lineMode - 40).toFixed(2)} years`,
+)
+
+// --- the toggle follows the radiogroup pattern -------------------------------
+const toggleKeys = await page.evaluate(() => {
+  const radios = [...document.querySelectorAll('[role="radio"]')]
+  return { tabIndexes: radios.map((r) => r.tabIndex) }
+})
+check(
+  'the toggle is a single tab stop (roving tabindex)',
+  toggleKeys.tabIndexes.filter((t) => t === 0).length === 1,
+  `tabIndex ${JSON.stringify(toggleKeys.tabIndexes)}`,
+)
+await page.getByRole('radio', { name: 'Mono' }).focus()
+await page.keyboard.press('ArrowRight')
+await settle(200)
+check(
+  'ArrowRight moves the toggle to Color',
+  (await page.getByRole('radio', { name: 'Color' }).getAttribute('aria-checked')) === 'true',
+)
+await page.keyboard.press('ArrowLeft')
+await settle(200)
+check(
+  'ArrowLeft moves it back to Mono',
+  (await page.getByRole('radio', { name: 'Mono' }).getAttribute('aria-checked')) === 'true',
+)
+
+// --- the whole instrument fits at WCAG's reflow target -----------------------
+const small = await browser.newPage({ viewport: { width: 320, height: 256 }, deviceScaleFactor: 1 })
+await small.goto(URL_BASE, { waitUntil: 'networkidle' })
+await small.waitForFunction(() => Boolean(window.__slider))
+const fits = await small.evaluate(() => {
+  const r = document.querySelector('[role="slider"]').getBoundingClientRect()
+  const t = document.querySelector('[role="radiogroup"]').getBoundingClientRect()
+  return {
+    rulerBottom: Math.round(r.bottom),
+    rulerTop: Math.round(r.top),
+    toggleBottom: Math.round(t.bottom),
+    viewport: window.innerHeight,
+    hOverflow: document.documentElement.scrollWidth > window.innerWidth,
+  }
+})
+await small.close()
+check(
+  'the ruler is fully on screen at 320x256 (WCAG reflow)',
+  fits.rulerBottom <= fits.viewport && fits.rulerTop >= 0,
+  `ruler ${fits.rulerTop}..${fits.rulerBottom} in ${fits.viewport}px`,
+)
+check('no horizontal overflow at 320x256', !fits.hOverflow)
+
 await browser.close()
 const failed = results.filter((r) => !r.pass)
 console.log(`\n${results.length - failed.length}/${results.length} edge-case checks passed`)

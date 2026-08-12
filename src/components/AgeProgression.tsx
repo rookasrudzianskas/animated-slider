@@ -80,6 +80,7 @@ export function AgeProgression() {
         <FaceStack
           engine={engine}
           mono={mode === 'mono'}
+          age={age}
           width={layout.faceWidth}
           height={layout.faceHeight}
         />

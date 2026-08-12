@@ -11,8 +11,9 @@ export const viewport: Viewport = {
   themeColor: '#fdfdfd',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // Deliberately no maximumScale/userScalable: blocking zoom is a WCAG 1.4.4
+  // failure, and the ruler already claims the wheel through preventDefault
+  // rather than by disabling the page's own gestures.
 }
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

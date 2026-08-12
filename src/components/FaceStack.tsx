@@ -18,6 +18,8 @@ import type { RulerEngine } from '@/lib/rulerEngine'
 export interface FaceStackProps {
   engine: RulerEngine
   mono: boolean
+  /** Rounded age, used only for the artwork's text alternative. */
+  age: number
   width?: number
   height?: number
 }
@@ -34,7 +36,13 @@ export interface FaceStackProps {
  * size, so there is no resampling, and so the pair being blended can change
  * every frame without touching the DOM.
  */
-export function FaceStack({ engine, mono, width = FACE_CSS_W, height = FACE_CSS_H }: FaceStackProps) {
+export function FaceStack({
+  engine,
+  mono,
+  age,
+  width = FACE_CSS_W,
+  height = FACE_CSS_H,
+}: FaceStackProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -99,7 +107,9 @@ export function FaceStack({ engine, mono, width = FACE_CSS_W, height = FACE_CSS_
       ref={canvasRef}
       width={FACE_W}
       height={FACE_H}
-      aria-hidden
+      role="img"
+      aria-label={`Portrait aged ${age}`}
+      data-chrome
       className="block"
       style={{
         width,

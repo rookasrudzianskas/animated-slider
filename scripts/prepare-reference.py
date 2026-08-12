@@ -233,16 +233,11 @@ def main():
             if abs(ocr[n] - (slope * n + intercept)) <= 1.5:
                 age[n] = ocr[n]
 
-        # The encoder flashes a tinted frame roughly every 4 seconds; tick
-        # detection is unreliable on those, so drop them rather than let a bad
-        # index through.
-        artifact = set()
-        for n in range(1, N_FRAMES + 1):
-            corner = np.asarray(
-                Image.open(os.path.join(frames_dir, f"f_{n:04d}.jpg")).convert("RGB")
-            ).astype(int)[3:40, 3:40].reshape(-1, 3).mean(axis=0)
-            if abs(corner[0] - corner[2]) > 2.0 or corner.mean() < 250:
-                artifact.add(n)
+        # The encoder flashes a tinted frame roughly every 4 seconds and tick
+        # detection goes to pieces on those. The giveaway is not the tint — that
+        # is a borderline call — but that NO ticks are found on either side of
+        # the indicator, which cannot happen on a real frame.
+        artifact = {n for n, r in frames.items() if r["nl"] + r["nr"] == 0}
 
         index = {}
         for n, a in age.items():
