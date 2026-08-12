@@ -218,7 +218,7 @@ Match this — do not add `cursor: grab`.
 `public/faces/{5..95}.webp` — 620 × 820 px (renders at 310 × 410 CSS, i.e. 2×),
 RGBA cut-outs un-multiplied from the page background.
 
-Provenance (`scratchpad/faces_manifest.json`):
+Provenance:
 - **77 of 91** are real frames lifted straight from the recording’s Color mode.
 - **8** (ages 27, 79–85) are cross-fades of the two nearest real frames — the
   recording never dwells there in Color mode.

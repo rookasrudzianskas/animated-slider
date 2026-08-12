@@ -48,9 +48,10 @@ export const CLIP_WIDTH = 23 * TICK_PITCH - TICK_WIDTH   // 543.4
 export const HALF_WINDOW = CLIP_WIDTH / 2                // 271.7
 
 /**
- * The tick lattice does not sit on the clip window's centre — the active tick
- * at offset 0 measures 545.37 against a window centred on 543.75. Cause
- * unknown; reproduced as measured.
+ * The tick lattice does not sit on the clip window's centre: the active tick at
+ * offset 0 measures 545.37 against a window centred on 543.75. Cause unknown,
+ * reproduced as measured — the value is calibrated so a screenshot's measured
+ * indicator centre lands on the reference's, which is what 1:1 means here.
  */
 export const LATTICE_OFFSET = 2.37
 

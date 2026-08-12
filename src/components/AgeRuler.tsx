@@ -40,7 +40,7 @@ export interface AgeRulerProps {
   pitch: number
   /**
    * How far the tick lattice sits right of the clip window's centre.
-   * 2.14 at the reference viewport — see LATTICE_OFFSET.
+   * 2.37 at the reference viewport — see LATTICE_OFFSET.
    */
   latticeOffset: number
   /** Announced age — kept in React state by the parent. */
